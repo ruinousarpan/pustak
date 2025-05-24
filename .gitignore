@@ -1,0 +1,13 @@
+# See https://github.com/github/gitignore/blob/main/Node.gitignore
+node_modules/
+.env
+.DS_Store
+/dist
+/build
+/public/uploads
+client/build
+server/build
+*.log
+.idea/
+.vscode/
+coverage/
