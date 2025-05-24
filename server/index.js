@@ -501,6 +501,75 @@ app.get('/api/users/:id/following', async (req, res) => {
   }
 });
 
+// Report a work or comment (abuse/moderation)
+app.post('/api/reports', authenticateToken, async (req, res) => {
+  const { work_id, comment_id, reason } = req.body;
+  if (!work_id && !comment_id) return res.status(400).json({ error: 'work_id or comment_id required' });
+  if (!reason) return res.status(400).json({ error: 'Reason required' });
+  try {
+    const result = await db.query(
+      `INSERT INTO reports (user_id, work_id, comment_id, reason) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [req.user.id, work_id || null, comment_id || null, reason]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Get all reports
+app.get('/api/admin/reports', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT r.*, u.email as reporter_email FROM reports r JOIN users u ON r.user_id = u.id ORDER BY r.created_at DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: Update report status (approve/reject)
+app.patch('/api/admin/reports/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const reportId = req.params.id;
+  const { status } = req.body; // 'approved', 'rejected', etc.
+  if (!status) return res.status(400).json({ error: 'Status required' });
+  try {
+    const result = await db.query(
+      `UPDATE reports SET status = $1 WHERE id = $2 RETURNING *`,
+      [status, reportId]
+    );
+    if (!result.rows[0]) return res.status(404).json({ error: 'Report not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// (Optional) Notification endpoints placeholder
+// You can use a notifications table and polling for MVP, or integrate with a service later.
+// Example: Get notifications for a user
+// app.get('/api/notifications', authenticateToken, async (req, res) => {
+//   // Fetch notifications for req.user.id
+// });
+
+// Monetization: Tip a writer (record a tip, no payment gateway integration here)
+app.post('/api/works/:id/tip', authenticateToken, async (req, res) => {
+  const workId = req.params.id;
+  const { amount } = req.body;
+  if (!amount || isNaN(amount) || amount <= 0) return res.status(400).json({ error: 'Valid amount required' });
+  try {
+    // For MVP, just record the tip. In production, integrate with payment gateway.
+    await db.query(
+      `INSERT INTO tips (user_id, work_id, amount) VALUES ($1, $2, $3)`,
+      [req.user.id, workId, amount]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

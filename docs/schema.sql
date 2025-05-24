@@ -106,3 +106,22 @@ CREATE TABLE reports (
     status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Tips (monetization)
+CREATE TABLE tips (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    work_id INTEGER REFERENCES works(id) ON DELETE CASCADE,
+    amount NUMERIC(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Notifications (optional, for future use)
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL, -- e.g., 'comment', 'like', 'follow', 'tip', etc.
+    data JSONB,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
